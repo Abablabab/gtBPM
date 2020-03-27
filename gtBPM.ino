@@ -45,10 +45,18 @@ int lastRawWiper    = 0;
 const int debounceDelay = 500;
 
 // States for sleepless output
-unsigned long lastBeatTime = 0;
+unsigned long lastBeatTime  = 0;
+unsigned long lastBeatTimeM = 0;
 const int beatDelay  = 20;
-const int vBeatDelay = 50;
 
+// Pointless UI flare
+//   "/\\", "||", "\\/", "--"
+const char* showOff[] = {
+  "//", "--", "\\\\", "||"
+};
+// I can calculate this but why bother!
+const int showOffLength = (4);
+int showOffIndex = 0;
 
 void setup() {
   Serial.begin(9600);
@@ -57,10 +65,6 @@ void setup() {
     Serial.println(F("SSD1306 allocation failed"));
     for(;;); // Don't proceed, loop forever
   }
-
-  // Button management
-  //pinMode(BUTTON_DOWN, INPUT);
-  //pinMode(BUTTON_UP,   INPUT);
 
   // Set up output
   pinMode(OUTCLOCK_PIN, OUTPUT);
@@ -100,10 +104,13 @@ void loop() {
 
   // Check if we're on the beat and reset the interrupt counter
   if(interruptCount >= BPM_COUNT[bpmIndex]) {
-    lastBeatTime = millis();
+    lastBeatTime  = millis();
+    lastBeatTimeM = micros();
     interruptCount = 0;
   }
   // Output if we're on, or just after the beat
+  // This actually matches for several clock cycles because milli's is not that precise
+  // but it's no matter because we maintain the trigger pulse anyway
   if( millis() < (lastBeatTime + beatDelay)) {
     // send the beat external trigger
     digitalWrite(OUTCLOCK_PIN, 100);    
@@ -128,12 +135,16 @@ void loop() {
 
   display.setCursor(100,50);
   display.setTextColor(SSD1306_WHITE);
+  
   // Set up a beat vbell
-  if( millis() < (lastBeatTime + vBeatDelay)) {
-    display.print(F("/\\"));
-  } else {
-    display.print(F("__"));
+  // If we allow multiple clocks to affect this we get a 'skipping' effect
+  if( (millis() - lastBeatTime) <= 15 ) {
+    showOffIndex++;
+    if (showOffIndex == (showOffLength)) {
+      showOffIndex = 0;
+    }
   }
+  display.print(showOff[showOffIndex]);
   display.display();
 
 }
