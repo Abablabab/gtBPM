@@ -40,9 +40,14 @@ Adafruit_SSD1306 display(
 );
 
 // Debounce variables
-int lastChangedTime = 0;
+unsigned long lastChangedTime = 0;
 int lastRawWiper    = 0;
 const int debounceDelay = 500;
+
+// States for sleepless output
+unsigned long lastBeatTime = 0;
+const int beatDelay  = 20;
+const int vBeatDelay = 50;
 
 
 void setup() {
@@ -70,7 +75,6 @@ void loop() {
 
   // Read the wiper
   int val = analogRead(WIPER_PIN);
-  //lastRawWiper = val;
   int currentRawWiper = val;
 
   if (val > 780) {
@@ -92,35 +96,46 @@ void loop() {
       lastChangedTime = millis();
       lastRawWiper=currentRawWiper;
     }
-    display.clearDisplay();
-    display.setTextSize(3);
-    if (BPM_LABEL[bpmIndex] < 100) {
-      display.setCursor(45, 15);
-    } else {
-      display.setCursor(35, 15);
-    }
-    display.setTextColor(SSD1306_WHITE);
-    display.println(BPM_LABEL[bpmIndex]);
+  }
 
-    display.setTextSize(2);
-
-    display.setCursor(0,50);
-    display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
-    display.print(F(">BPM"));
-
-    display.setCursor(80,50);
-    display.setTextColor(SSD1306_WHITE);
-    display.print(currentRawWiper);
-    display.display();
-  } 
-
-  // now we check the count
+  // Check if we're on the beat and reset the interrupt counter
   if(interruptCount >= BPM_COUNT[bpmIndex]) {
-    digitalWrite(OUTCLOCK_PIN, 100);
-    delay(10);
-    digitalWrite(OUTCLOCK_PIN, 0);
+    lastBeatTime = millis();
     interruptCount = 0;
   }
+  // Output if we're on, or just after the beat
+  if( millis() < (lastBeatTime + beatDelay)) {
+    // send the beat external trigger
+    digitalWrite(OUTCLOCK_PIN, 100);    
+  } else {
+    // pull it down
+    digitalWrite(OUTCLOCK_PIN, 0);
+  }
+
+  display.clearDisplay();
+  display.setTextSize(3);
+  if (BPM_LABEL[bpmIndex] < 100) {
+    display.setCursor(45, 15);
+  } else {
+    display.setCursor(35, 15);
+  }
+  display.setTextColor(SSD1306_WHITE);
+  display.print(BPM_LABEL[bpmIndex]);
+  display.setTextSize(2);
+  display.setCursor(0,50);
+  display.setTextColor(SSD1306_BLACK, SSD1306_WHITE);
+  display.print(F(">BPM"));
+
+  display.setCursor(100,50);
+  display.setTextColor(SSD1306_WHITE);
+  // Set up a beat vbell
+  if( millis() < (lastBeatTime + vBeatDelay)) {
+    display.print(F("/\\"));
+  } else {
+    display.print(F("__"));
+  }
+  display.display();
+
 }
 
 void drawIntro(void) {
