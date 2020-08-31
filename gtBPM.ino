@@ -6,14 +6,16 @@
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 // Declaration for SSD1306 display connected using software SPI (default case):
-#define OLED_MOSI   9
-#define OLED_CLK   10
-#define OLED_DC    14
-#define OLED_CS    15
-#define OLED_RESET 16
+#define OLED_MOSI   9 // D1 label
+#define OLED_CLK   10 // D0 label
+#define OLED_DC    14 // DC label
+#define OLED_CS    15 // CS label
+#define OLED_RESET 16 // RES label
 
-#define INTERRUPT_PIN 7
+#define PWM_PIN 3
+#define INTERRUPT_PIN 7 // connect 3 to 7 for internal interrupt clock
 #define OUTCLOCK_PIN  8
+#define WIPER_PIN A1
 
 // BPM tables for the fast clock divisions
 const int BPM_LABEL[] = {
@@ -26,9 +28,7 @@ const int BPM_COUNT[] = {
 int bpmIndex = 0;
 volatile int interruptCount = 0;
 
-// Pindefs for IO
-#define WIPER_PIN A1
-
+// set up the display
 Adafruit_SSD1306 display(
   SCREEN_WIDTH, 
   SCREEN_HEIGHT,
@@ -75,7 +75,7 @@ void setup() {
 }
 
 void loop() {
-  analogWrite(3, 127); // Scope measures this as 976.5hz
+  analogWrite(PWM_PIN, 127); // Scope measures this as 976.5hz
 
   // Read the wiper
   int val = analogRead(WIPER_PIN);
